@@ -346,8 +346,13 @@ def ivarSection(value):
   """Section within an ivar block in an interface."""
   return justErrors(value)
 
+@rule('\n' + sp(4) + '\n')
+def emptyIvarLine(value):
+  """Empty line within an ivar block in an interface."""
+  return justErrors(value)
 
-@rule('{' + +(ivar | ivarSection | anyPreprocessor | (xsp + '\n')) + '}')
+
+@rule('{' + +(ivar | emptyIvarLine | ivarSection | anyPreprocessor | (xsp + '\n')) + '}')
 def ivarBlock(value):
   """Block full of ivar declarations."""
   return justErrors(value)
@@ -427,6 +432,15 @@ def declarationSection(value):
   """Declarations sub-section in an interface or protocol."""
   return justErrors(value)
 
+@rule(First('@interface'))
+def interfaceTag(value):
+  """Interface tag."""
+  return justErrors(value)
+
+@rule(interfaceTag + sp(1) + className + sp(1) + '()')
+def privateInterfaceTag(value):
+  """Private interface tag."""
+  return justErrors(value)
 
 @rule(anyIdentifier + Regex(r'([^;]*);')[drop])
 def macroCall(value):
@@ -438,6 +452,14 @@ def macroCall(value):
        macroCall | anyPreprocessor | (xsp + '\n'))[...])
 def declarations(value): # 2 lines check is broken due to decorator wrapping. # pylint: disable=W9911
   """Declarations area of an interface."""
+  return justErrors(value)
+
+@rule(privateInterfaceTag +
+      -(nlOrSp + ivarBlock) +
+      declarations +
+      end)
+def privateInterface(value):
+  """Private interface."""
   return justErrors(value)
 
 
@@ -586,7 +608,6 @@ def shouldBeSemicolonAndNewline(result, pos):
 
   return errors or None
 
-
 @rule(methodSignature + shouldBeSemicolonAndNewline + codeBlock)
 def method(value):
   """A method."""
@@ -600,7 +621,8 @@ def forwardDeclaration(value):
 
 
 filePart.set(inclusion | interface | implementation | cppClass | namespace | '\n' | ' ' | method | methodDeclaration |
-             protocolDeclaration | forwardDeclaration | string | objcString | codeBlock | anyPreprocessor | AnyChar())
+             privateInterface | protocolDeclaration | forwardDeclaration | string | objcString | codeBlock |
+             anyPreprocessor | AnyChar())
 
 
 @rule(+filePart)
