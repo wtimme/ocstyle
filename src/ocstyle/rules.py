@@ -494,8 +494,8 @@ def cppClass(value):
 @rule(identifier[1])
 def localVarName(value, position):
   """A name of a class."""
-  if not value[0].islower():
-    return Error('BadLocalVariableName', 'Local variable must start with a lower case letter', position, LINES)
+  if not value[0].islower() and not value[0] == '_':
+    return Error('BadLocalVariableName', 'Local variable must start with a lower case letter or an underscore.', position, LINES)
   return None
 
 
